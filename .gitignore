@@ -27,9 +27,6 @@ build/
 test_data.db
 test_lance_data/
 
-examples/beauty/beauty.db
-examples/beauty/lance_data/
-
 examples/imdb/imdb.db
 examples/imdb/lance_imdb/
 

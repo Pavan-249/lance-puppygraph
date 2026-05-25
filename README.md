@@ -116,27 +116,6 @@ python ../../fusion_proxy.py --config config.yaml    # start the proxy
 python demo.py [--args]
 ```
 
-### Beauty products (`examples/beauty/`)
-
-**What it demonstrates:** Given a skin symptom described in plain English, find cosmetic products that contain the most semantically related ingredients.
-
-**Data source:** OpenBeautyFacts via HuggingFace (`openfoodfacts/product-database`, split `beauty`)
-
-**Graph:**
-- `Product` vertices
-- `Ingredient` vertices (with LanceDB embeddings of ingredient names)
-- `CONTAINS` edges
-
-```bash
-cd examples/beauty
-python load_data.py     # 10 to 30 min depending on download speed and hardware
-python ../../fusion_proxy.py --config config.yaml
-# upload schema.json to PuppyGraph UI
-python demo.py --symptom "skin gets tight and red after moisturiser, burning sensation"
-```
-
-LanceDB returns the ingredients most semantically similar to the symptom. PuppyGraph traverses `CONTAINS` edges in reverse to find which products have the most flagged ingredients.
-
 ### IMDB movies (`examples/imdb/`)
 
 **What it demonstrates:** Find films by plot concept, then explore the graph to surface shared actors, directors, and genres across the matched set.
@@ -399,11 +378,6 @@ lance-puppygraph/
 ├── docker-compose.yml       # PuppyGraph Docker service definition
 ├── requirements.txt         # Core Python dependencies
 └── examples/
-    ├── beauty/
-    │   ├── load_data.py     # Downloads OpenBeautyFacts and builds data files
-    │   ├── config.yaml
-    │   ├── schema.json
-    │   └── demo.py
     ├── imdb/
     │   ├── load_data.py     # Downloads TMDB 5000 and builds data files
     │   ├── config.yaml
@@ -426,7 +400,7 @@ On Linux, `host.docker.internal` is not available by default. Either add `--add-
 
 **"DuckDB file not found" or "LanceDB path not found" at startup**
 
-Paths in `config.yaml` resolve relative to the config file's location, not your working directory. If you run `python fusion_proxy.py --config examples/beauty/config.yaml` from the repo root, the path `beauty.db` inside that config resolves to `examples/beauty/beauty.db`.
+Paths in `config.yaml` resolve relative to the config file's location, not your working directory. If you run `python fusion_proxy.py --config examples/imdb/config.yaml` from the repo root, the path `imdb.db` inside that config resolves to `examples/imdb/imdb.db`.
 
 **Schema upload fails in the PuppyGraph UI**
 
