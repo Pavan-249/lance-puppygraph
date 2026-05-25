@@ -1,0 +1,77 @@
+{
+  "catalogs": [
+    {
+      "name": "beauty",
+      "type": "postgresql",
+      "jdbc": {
+        "username": "postgres",
+        "password": "postgres",
+        "jdbcUri": "jdbc:postgresql://host.docker.internal:5433/beauty?ssl=false&sslmode=disable",
+        "driverClass": "org.postgresql.Driver"
+      }
+    }
+  ],
+  "graph": {
+    "vertices": [
+      {
+        "label": "Product",
+        "oneToOne": {
+          "tableSource": {
+            "catalog": "beauty",
+            "schema": "public",
+            "table": "products"
+          },
+          "id": {
+            "fields": [
+              { "type": "String", "field": "product_id", "alias": "product_id" }
+            ]
+          },
+          "attributes": [
+            { "type": "String", "field": "product_name", "alias": "product_name" },
+            { "type": "String", "field": "brand", "alias": "brand" }
+          ]
+        }
+      },
+      {
+        "label": "Ingredient",
+        "oneToOne": {
+          "tableSource": {
+            "catalog": "beauty",
+            "schema": "public",
+            "table": "ingredients"
+          },
+          "id": {
+            "fields": [
+              { "type": "String", "field": "ingredient_id", "alias": "ingredient_id" }
+            ]
+          },
+          "attributes": [
+            { "type": "String", "field": "ingredient_name", "alias": "ingredient_name" }
+          ]
+        }
+      }
+    ],
+    "edges": [
+      {
+        "label": "CONTAINS",
+        "fromVertex": "Product",
+        "toVertex": "Ingredient",
+        "tableSource": {
+          "catalog": "beauty",
+          "schema": "public",
+          "table": "product_ingredients"
+        },
+        "fromId": {
+          "fields": [
+            { "type": "String", "field": "product_id", "alias": "product_id" }
+          ]
+        },
+        "toId": {
+          "fields": [
+            { "type": "String", "field": "ingredient_id", "alias": "ingredient_id" }
+          ]
+        }
+      }
+    ]
+  }
+}

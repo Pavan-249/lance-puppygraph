@@ -1,0 +1,77 @@
+{
+  "catalogs": [
+    {
+      "name": "movies",
+      "type": "postgresql",
+      "jdbc": {
+        "username": "postgres",
+        "password": "postgres",
+        "jdbcUri": "jdbc:postgresql://host.docker.internal:5433/movies?ssl=false&sslmode=disable",
+        "driverClass": "org.postgresql.Driver"
+      }
+    }
+  ],
+  "graph": {
+    "vertices": [
+      {
+        "label": "Movie",
+        "oneToOne": {
+          "tableSource": {
+            "catalog": "movies",
+            "schema": "public",
+            "table": "movies"
+          },
+          "id": {
+            "fields": [
+              { "type": "String", "field": "movie_id", "alias": "movie_id" }
+            ]
+          },
+          "attributes": [
+            { "type": "String", "field": "title", "alias": "title" },
+            { "type": "String", "field": "director", "alias": "director" }
+          ]
+        }
+      },
+      {
+        "label": "Genre",
+        "oneToOne": {
+          "tableSource": {
+            "catalog": "movies",
+            "schema": "public",
+            "table": "genres"
+          },
+          "id": {
+            "fields": [
+              { "type": "String", "field": "genre_id", "alias": "genre_id" }
+            ]
+          },
+          "attributes": [
+            { "type": "String", "field": "genre_desc", "alias": "genre_desc" }
+          ]
+        }
+      }
+    ],
+    "edges": [
+      {
+        "label": "HAS_GENRE",
+        "fromVertex": "Movie",
+        "toVertex": "Genre",
+        "tableSource": {
+          "catalog": "movies",
+          "schema": "public",
+          "table": "movie_genres"
+        },
+        "fromId": {
+          "fields": [
+            { "type": "String", "field": "movie_id", "alias": "movie_id" }
+          ]
+        },
+        "toId": {
+          "fields": [
+            { "type": "String", "field": "genre_id", "alias": "genre_id" }
+          ]
+        }
+      }
+    ]
+  }
+}

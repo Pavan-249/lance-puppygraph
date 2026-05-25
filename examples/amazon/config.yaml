@@ -1,0 +1,19 @@
+proxy:
+  host: "0.0.0.0"
+  port: 5433
+
+duckdb:
+  path: "amazon.db"
+
+lancedb:
+  path: "./lance_amazon"
+
+embedding:
+  model: "BAAI/bge-small-en-v1.5"
+
+catalog:
+  name: "amazon"
+
+vector_search:
+  id_column: "user_id"
+  vector_column: "vector"

@@ -1,0 +1,10 @@
+# Core connector dependencies
+buenavista
+lancedb
+duckdb
+sentence-transformers
+pyarrow
+pyyaml
+
+# Only needed for the demo script (examples/beauty/demo.py)
+gremlinpython

@@ -1,0 +1,24 @@
+# Beauty Products Example — FusionProxy Config
+# ─────────────────────────────────────────────
+# Run `python load_data.py` first to create data.db and ./lance_data,
+# then start the proxy: python ../../fusion_proxy.py --config config.yaml
+
+proxy:
+  host: "0.0.0.0"
+  port: 5433
+
+duckdb:
+  path: "beauty.db"
+
+lancedb:
+  path: "./lance_data"
+
+embedding:
+  model: "BAAI/bge-small-en-v1.5"
+
+catalog:
+  name: "beauty"
+
+vector_search:
+  id_column: "ingredient_id"
+  vector_column: "vector"

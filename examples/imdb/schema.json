@@ -1,0 +1,95 @@
+{
+  "catalogs": [
+    {
+      "name": "imdb",
+      "type": "postgresql",
+      "jdbc": {
+        "username": "postgres",
+        "password": "postgres",
+        "jdbcUri": "jdbc:postgresql://host.docker.internal:5433/imdb?ssl=false&sslmode=disable",
+        "driverClass": "org.postgresql.Driver"
+      }
+    }
+  ],
+  "graph": {
+    "vertices": [
+      {
+        "label": "Movie",
+        "oneToOne": {
+          "tableSource": { "catalog": "imdb", "schema": "public", "table": "movies" },
+          "id": {
+            "fields": [{ "type": "String", "field": "movie_id", "alias": "movie_id" }]
+          },
+          "attributes": [
+            { "type": "String", "field": "title",    "alias": "title" },
+            { "type": "String", "field": "year",     "alias": "year" },
+            { "type": "String", "field": "rating",   "alias": "rating" },
+            { "type": "String", "field": "overview", "alias": "overview" }
+          ]
+        }
+      },
+      {
+        "label": "Director",
+        "oneToOne": {
+          "tableSource": { "catalog": "imdb", "schema": "public", "table": "directors" },
+          "id": {
+            "fields": [{ "type": "String", "field": "director_id", "alias": "director_id" }]
+          },
+          "attributes": [
+            { "type": "String", "field": "name", "alias": "name" }
+          ]
+        }
+      },
+      {
+        "label": "Actor",
+        "oneToOne": {
+          "tableSource": { "catalog": "imdb", "schema": "public", "table": "actors" },
+          "id": {
+            "fields": [{ "type": "String", "field": "actor_id", "alias": "actor_id" }]
+          },
+          "attributes": [
+            { "type": "String", "field": "name", "alias": "name" }
+          ]
+        }
+      },
+      {
+        "label": "Genre",
+        "oneToOne": {
+          "tableSource": { "catalog": "imdb", "schema": "public", "table": "genres" },
+          "id": {
+            "fields": [{ "type": "String", "field": "genre_id", "alias": "genre_id" }]
+          },
+          "attributes": [
+            { "type": "String", "field": "name", "alias": "name" }
+          ]
+        }
+      }
+    ],
+    "edges": [
+      {
+        "label": "DIRECTED_BY",
+        "fromVertex": "Movie",
+        "toVertex": "Director",
+        "tableSource": { "catalog": "imdb", "schema": "public", "table": "movie_directors" },
+        "fromId": { "fields": [{ "type": "String", "field": "movie_id", "alias": "movie_id" }] },
+        "toId":   { "fields": [{ "type": "String", "field": "director_id", "alias": "director_id" }] }
+      },
+      {
+        "label": "FEATURES",
+        "fromVertex": "Movie",
+        "toVertex": "Actor",
+        "tableSource": { "catalog": "imdb", "schema": "public", "table": "movie_actors" },
+        "fromId": { "fields": [{ "type": "String", "field": "movie_id", "alias": "movie_id" }] },
+        "toId":   { "fields": [{ "type": "String", "field": "actor_id", "alias": "actor_id" }] }
+      },
+      {
+        "label": "HAS_GENRE",
+        "fromVertex": "Movie",
+        "toVertex": "Genre",
+        "tableSource": { "catalog": "imdb", "schema": "public", "table": "movie_genres" },
+        "fromId": { "fields": [{ "type": "String", "field": "movie_id", "alias": "movie_id" }] },
+        "toId":   { "fields": [{ "type": "String", "field": "genre_id", "alias": "genre_id" }] }
+      }
+    ]
+  }
+}

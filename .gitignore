@@ -1,0 +1,42 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+dist/
+build/
+.pytest_cache/
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Generated data files (created by load_data.py and create_test_data.py)
+# Do not commit large binary database files or vector stores
+test_data.db
+test_lance_data/
+
+examples/beauty/beauty.db
+examples/beauty/lance_data/
+
+examples/imdb/imdb.db
+examples/imdb/lance_imdb/
+
+examples/amazon/amazon.db
+examples/amazon/lance_amazon/
+
+# Generic patterns for generated outputs in any example directory
+*.db
+lance_*/
+lance_data/

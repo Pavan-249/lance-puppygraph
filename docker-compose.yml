@@ -1,0 +1,12 @@
+services:
+  puppygraph:
+    image: puppygraph/puppygraph:stable
+    container_name: puppygraph
+    ports:
+      - "8085:8081"   # Web UI
+      - "8183:8182"   # Gremlin endpoint
+      - "7687:7687"   # Bolt protocol
+    environment:
+      - PUPPYGRAPH_USERNAME=puppygraph
+      - PUPPYGRAPH_PASSWORD=puppygraph123
+      - DATAACCESS_DATA_CACHE_STRATEGY=NEVER

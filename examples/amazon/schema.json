@@ -1,0 +1,44 @@
+{
+  "catalogs": [
+    {
+      "name": "amazon",
+      "type": "postgresql",
+      "jdbc": {
+        "username": "postgres",
+        "password": "postgres",
+        "jdbcUri": "jdbc:postgresql://host.docker.internal:5433/amazon?ssl=false&sslmode=disable",
+        "driverClass": "org.postgresql.Driver"
+      }
+    }
+  ],
+  "graph": {
+    "vertices": [
+      {
+        "label": "Reviewer",
+        "oneToOne": {
+          "tableSource": { "catalog": "amazon", "schema": "public", "table": "reviewers" },
+          "id": { "fields": [{ "type": "String", "field": "user_id", "alias": "user_id" }] },
+          "attributes": []
+        }
+      },
+      {
+        "label": "Product",
+        "oneToOne": {
+          "tableSource": { "catalog": "amazon", "schema": "public", "table": "products" },
+          "id": { "fields": [{ "type": "String", "field": "product_id", "alias": "product_id" }] },
+          "attributes": []
+        }
+      }
+    ],
+    "edges": [
+      {
+        "label": "WROTE_REVIEW",
+        "fromVertex": "Reviewer",
+        "toVertex": "Product",
+        "tableSource": { "catalog": "amazon", "schema": "public", "table": "reviews" },
+        "fromId": { "fields": [{ "type": "String", "field": "user_id", "alias": "user_id" }] },
+        "toId":   { "fields": [{ "type": "String", "field": "product_id", "alias": "product_id" }] }
+      }
+    ]
+  }
+}
