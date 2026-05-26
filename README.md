@@ -1,48 +1,103 @@
-# LanceDB + PuppyGraph Connector
+# LanceDB + PuppyGraph: Semantic Graph Connector
 
-This repository contains a connector (`fusion_proxy.py`) that seamlessly integrates **PuppyGraph** (for graph traversal) with **LanceDB** (for semantic vector search).
+This repository contains **FusionProxy**—a custom connector that seamlessly integrates **PuppyGraph** (high-performance graph traversal) with **LanceDB** (semantic vector search).
 
-PuppyGraph natively connects to relational databases via JDBC. This project provides a proxy that acts as a PostgreSQL server, allowing PuppyGraph to traverse relationships stored in DuckDB while routing semantic search queries directly to LanceDB.
+PuppyGraph natively connects to relational databases via JDBC. This project provides a proxy that masquerades as a PostgreSQL server. It allows PuppyGraph to traverse relationships stored in DuckDB while routing any semantic search queries directly to LanceDB's vector index.
 
-## Architecture
+---
 
-1.  **PuppyGraph**: Executes graph traversals (Gremlin/Cypher). Connects to the proxy via JDBC.
-2.  **FusionProxy**: Intercepts queries. Standard SQL queries are passed to DuckDB. Calls to the custom `vec_search()` macro are intercepted and executed via the LanceDB Python SDK.
-3.  **LanceDB**: Handles all vector similarity searches.
-4.  **DuckDB**: Stores the relational graph data (nodes and edges).
+## 🏗 Architecture
 
-## How it Works
+```mermaid
+flowchart TD
+    UI[Frontend / Gremlin Client] -->|Gremlin| PG[PuppyGraph]
+    
+    subgraph Fusion Proxy [Fusion Proxy: Port 5435]
+        direction TB
+        Intercept[Query Interceptor]
+    end
 
-The connector uses `buenavista` to emulate a PostgreSQL wire protocol server. When PuppyGraph issues a query, the proxy parses it:
+    PG -->|JDBC SQL| Intercept
+    
+    Intercept -->|1. Semantic Queries| LDB[(LanceDB)]
+    LDB -->|Vector Matches ID List| Intercept
+    
+    Intercept -->|2. Standard SQL| DDB[(DuckDB)]
+    DDB -->|Relational Graph Data| Intercept
+    
+    Intercept -->|Standard Postgres Results| PG
+```
 
-*   If the query contains `vec_search(table, 'query_string', k)`, the proxy strips this out, queries LanceDB for the top `k` semantic matches, and injects the resulting IDs back into the SQL query as an `IN (...)` clause.
-*   The modified SQL query is then executed on the DuckDB instance.
-*   The results are returned to PuppyGraph as if they came from a standard Postgres table.
+### The Core of the Proxy
 
-This allows you to filter graph nodes using LanceDB's semantic search *before* executing complex graph traversals in PuppyGraph.
+The heart of this repository is `fusion_proxy.py`. 
 
-## Quick Start (Movies Demo)
+PuppyGraph uses the Postgres wire protocol to execute SQL queries. The proxy (built using `buenavista`) intercepts these queries *before* they reach the database.
 
-The `examples/movies/` directory contains a full end-to-end demonstration. It uses a movie dataset to show how LanceDB can find movies by plot description, and PuppyGraph can traverse the shared creative network (directors and actors) to find hidden connections.
+It listens for a custom SQL macro: `vec_search(table_name, 'search_string', limit)`.
+When the proxy spots this macro in a WHERE clause, it:
+1. Strips the macro from the SQL string.
+2. Embeds the `'search_string'` using a sentence transformer model.
+3. Queries LanceDB to instantly find the top `limit` mathematically closest vectors.
+4. Extracts the IDs of those vectors and **rewrites the SQL query** on the fly to use a standard `IN ('id1', 'id2', ...)` clause.
+5. Passes the newly rewritten standard SQL query to DuckDB to retrieve the relational data.
+6. Returns the data to PuppyGraph.
 
-### 1. Start PuppyGraph
-From the root directory, start the PuppyGraph Docker container:
+To PuppyGraph, it feels exactly like querying a standard Postgres database, but you get blazing-fast vector similarity search built directly into the SQL layer.
+
+---
+
+## 🎬 Walkthrough: The Movie Example
+
+Inside the `examples/movies` directory is a complete, end-to-end Graph Discovery Engine.
+
+It solves a specific problem: **Vector search finds meaning, but Graph traversal uncovers creative DNA.**
+
+### The Flow
+1. **Semantic Matches (LanceDB):** A user searches for *"brooding psychological thriller"*. LanceDB converts this text into a vector, scans its index of movie plot descriptions, and returns the top 18 matches.
+2. **Shared Creators (PuppyGraph):** We send those 18 movie IDs to PuppyGraph via Gremlin. PuppyGraph traverses the `FEATURES` (Actors) and `PRODUCED_BY` (Producers) edges. It runs a `groupCount()` to find out which creators appear most frequently in this semantic cluster, filtering by a strict "signal strength" threshold against their entire career catalog.
+3. **Graph Discoveries (PuppyGraph + LanceDB):** PuppyGraph hops from those top creators to their *other* films (films that were completely missed by the initial vector search). LanceDB re-scores these new films to ensure semantic relevance, and surfaces them as hidden gems.
+
+---
+
+## ⚙️ Setup & Connection
+
+### 1. The PuppyGraph Schema
+Because we use the Fusion Proxy, configuring PuppyGraph is incredibly simple. In `examples/movies/schema.json`, we configure PuppyGraph to point to the proxy via JDBC:
+
+```json
+"catalogs": [
+  {
+    "name": "movies",
+    "type": "postgresql",
+    "jdbc": {
+      "username": "postgres",
+      "password": "postgres",
+      "jdbcUri": "jdbc:postgresql://host.docker.internal:5435/movies?ssl=false&sslmode=disable",
+      "driverClass": "org.postgresql.Driver"
+    }
+  }
+]
+```
+
+The schema defines standard vertices and edges pulling straight from the DuckDB tables via the proxy:
+* **Vertices:** `Movie`, `Actor`, `Producer`
+* **Edges:** `FEATURES` (Movie → Actor), `PRODUCED_BY` (Movie → Producer)
+
+### 2. Start PuppyGraph
 ```bash
 docker compose up -d
 ```
-PuppyGraph will be available at `http://localhost:8085` (Login: `puppygraph` / `puppygraph123`).
+PuppyGraph is available at `http://localhost:8085` (Login: `puppygraph` / `puppygraph123`).
 
-### 2. Start the Proxy
-The proxy requires the path to the DuckDB file and the LanceDB directory. A configuration file is provided in the examples folder.
-
+### 3. Start the Proxy
+The proxy requires a path to the DuckDB relational file and the LanceDB vector directory (defined in `config.yaml`).
 ```bash
 python fusion_proxy.py --config examples/movies/config.yaml
 ```
-The proxy will listen on port `5435`.
 
-### 3. Upload the Schema
-Register the graph structure with PuppyGraph.
-
+### 4. Upload Schema & Run the UI
+Push the schema to PuppyGraph:
 ```bash
 curl -XPOST -H "content-type: application/json" \
      --data-binary @examples/movies/schema.json \
@@ -50,13 +105,9 @@ curl -XPOST -H "content-type: application/json" \
      localhost:8085/schema
 ```
 
-### 4. Run the Demo Server
-Start the frontend interface.
-
+Start the frontend Graph Discovery Engine:
 ```bash
 cd examples/movies
 python demo_server.py
 ```
-Open `http://localhost:8052` in your browser.
-
-*(Insert UI Screenshots Here)*
+Open `http://localhost:8052`.
