@@ -32,20 +32,24 @@ In this project, PuppyGraph connects to DuckDB (through a thin proxy described b
 
 ## Architecture
 
-```
-Browser
-  |
-  v
-demo_server.py  (FastAPI, port 8052)
-  |
-  |--- /search      LanceDB Python client  -->  lance_movies/   (vector index)
-  |
-  |--- /analyze     Gremlin WebSocket  -->  PuppyGraph (:8183)
-  |--- /discover         |
-                         |-- JDBC -->  FusionProxy (:5435)
-                                            |
-                                            |-- vec_search() -->  LanceDB
-                                            |-- standard SQL -->  movies.db (DuckDB)
+```mermaid
+flowchart TD
+    UI[Frontend / Gremlin Client] -->|Gremlin| PG[PuppyGraph]
+
+    subgraph Fusion Proxy [Fusion Proxy: Port 5435]
+        direction TB
+        Intercept[Query Interceptor]
+    end
+
+    PG -->|JDBC SQL| Intercept
+
+    Intercept -->|1. Semantic Queries| LDB[(LanceDB)]
+    LDB -->|Vector Matches ID List| Intercept
+
+    Intercept -->|2. Standard SQL| DDB[(DuckDB)]
+    DDB -->|Relational Graph Data| Intercept
+
+    Intercept -->|Standard Postgres Results| PG
 ```
 
 **FusionProxy** (`fusion_proxy.py`) is the bridge. It speaks the Postgres wire protocol on port 5435, so PuppyGraph can connect to it like any PostgreSQL database. When a query contains a `vec_search(table, 'query text', k)` macro, the proxy:
