@@ -1,6 +1,6 @@
 # LanceDB + PuppyGraph: Semantic Graph Connector
 
-This repository contains **FusionProxy**—a custom connector that seamlessly integrates **PuppyGraph** (high-performance graph traversal) with **LanceDB** (semantic vector search).
+This repository contains **FusionProxy**, a custom-built connector designed specifically for this project, that seamlessly integrates **PuppyGraph** (high-performance graph traversal) with **LanceDB** (semantic vector search).
 
 PuppyGraph natively connects to relational databases via JDBC. This project provides a proxy that masquerades as a PostgreSQL server. It allows PuppyGraph to traverse relationships stored in DuckDB while routing any semantic search queries directly to LanceDB's vector index.
 

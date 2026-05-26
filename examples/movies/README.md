@@ -10,7 +10,7 @@ This architecture does exactly what it says on the tin. There are no language mo
    When a user searches for "brooding psychological thriller," a local embedding model (`BAAI/bge-small-en-v1.5`) converts that text into a vector. LanceDB queries its vector index to find the 18 movies whose plot descriptions mathematically align closest to that vector. 
 
 2. **PuppyGraph Traverses the Creator Network (`/analyze`)**
-   We take those exact 18 `movie_ids` and pass them to PuppyGraph via a Gremlin query. PuppyGraph traverses outwards along the `FEATURES` (actors) and `PRODUCED_BY` (producers) edges. It runs a `groupCount()` to see which creators appear most frequently inside this 18-movie cluster. We filter these creators by "Signal Strength"—they are only considered relevant if a high percentage of their *entire catalog* exists within this specific semantic cluster.
+   We take those exact 18 `movie_ids` and pass them to PuppyGraph via a Gremlin query. PuppyGraph traverses outwards along the `FEATURES` (actors) and `PRODUCED_BY` (producers) edges. It runs a `groupCount()` to see which creators appear most frequently inside this 18-movie cluster. We filter these creators by "Signal Strength" - they are only considered relevant if a high percentage of their *entire catalog* exists within this specific semantic cluster.
 
 3. **The Graph Discovery Pipeline (`/discover`)**
    Once PuppyGraph identifies the top "Shared Creators", it hops *back* down to all the other films those creators have made. These are films that share creative DNA with the semantic cluster, but were completely missed by the initial vector search. 
