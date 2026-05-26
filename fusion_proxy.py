@@ -77,6 +77,11 @@ class FusionSession(DuckDBSession):
             )
             return super().execute_sql(sql, params)
 
+        # HACK 1.5: PuppyGraph uses array_upper which duckdb doesn't support natively in this context
+        if "array_upper(current_schemas(false), 1)" in sql:
+            sql = sql.replace("array_upper(current_schemas(false), 1)", "1")
+            return super().execute_sql(sql, params)
+
         # HACK 2: intercept vec_search(table, query, k) and rewrite to lance_vector_search
         match = None
         param_index = -1

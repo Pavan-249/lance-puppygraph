@@ -1,0 +1,65 @@
+{
+  "catalogs": [
+    {
+      "name": "whale",
+      "type": "postgresql",
+      "jdbc": {
+        "username": "postgres",
+        "password": "postgres",
+        "jdbcUri": "jdbc:postgresql://host.docker.internal:5434/whale?ssl=false&sslmode=disable",
+        "driverClass": "org.postgresql.Driver"
+      }
+    }
+  ],
+  "graph": {
+    "vertices": [
+      {
+        "label": "Whale",
+        "oneToOne": {
+          "tableSource": { "catalog": "whale", "schema": "public", "table": "whales" },
+          "id": {
+            "fields": [{ "type": "String", "field": "whale_id", "alias": "whale_id" }]
+          },
+          "attributes": [
+            { "type": "String", "field": "whale_name",     "alias": "whale_name" },
+            { "type": "String", "field": "happywhale_url", "alias": "happywhale_url" }
+          ]
+        }
+      },
+      {
+        "label": "Sighting",
+        "oneToOne": {
+          "tableSource": { "catalog": "whale", "schema": "public", "table": "sightings" },
+          "id": {
+            "fields": [{ "type": "String", "field": "sighting_id", "alias": "sighting_id" }]
+          },
+          "attributes": [
+            { "type": "String", "field": "whale_id",  "alias": "whale_id" },
+            { "type": "String", "field": "date",      "alias": "date" },
+            { "type": "String", "field": "locality",  "alias": "locality" },
+            { "type": "String", "field": "observer",  "alias": "observer" },
+            { "type": "String", "field": "remarks",   "alias": "remarks" }
+          ]
+        }
+      }
+    ],
+    "edges": [
+      {
+        "label": "SPOTTED_AT",
+        "fromVertex": "Whale",
+        "toVertex": "Sighting",
+        "tableSource": { "catalog": "whale", "schema": "public", "table": "sightings" },
+        "fromId": { "fields": [{ "type": "String", "field": "whale_id",   "alias": "whale_id" }] },
+        "toId":   { "fields": [{ "type": "String", "field": "sighting_id","alias": "sighting_id" }] }
+      },
+      {
+        "label": "SHARES_LOCATION",
+        "fromVertex": "Whale",
+        "toVertex": "Whale",
+        "tableSource": { "catalog": "whale", "schema": "public", "table": "shared_location" },
+        "fromId": { "fields": [{ "type": "String", "field": "whale_id_a", "alias": "whale_id_a" }] },
+        "toId":   { "fields": [{ "type": "String", "field": "whale_id_b", "alias": "whale_id_b" }] }
+      }
+    ]
+  }
+}

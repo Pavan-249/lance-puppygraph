@@ -1,0 +1,68 @@
+{
+  "catalogs": [
+    {
+      "name": "movies",
+      "type": "postgresql",
+      "jdbc": {
+        "username": "postgres",
+        "password": "postgres",
+        "jdbcUri": "jdbc:postgresql://host.docker.internal:5435/movies?ssl=false&sslmode=disable",
+        "driverClass": "org.postgresql.Driver"
+      }
+    }
+  ],
+  "graph": {
+    "vertices": [
+      {
+        "label": "Movie",
+        "oneToOne": {
+          "tableSource": { "catalog": "movies", "schema": "public", "table": "movies" },
+          "id": { "fields": [{ "type": "String", "field": "movie_id", "alias": "movie_id" }] },
+          "attributes": [
+            { "type": "String", "field": "title",    "alias": "title" },
+            { "type": "String", "field": "overview", "alias": "overview" },
+            { "type": "String", "field": "genres",   "alias": "genres" }
+          ]
+        }
+      },
+      {
+        "label": "Actor",
+        "oneToOne": {
+          "tableSource": { "catalog": "movies", "schema": "public", "table": "actors" },
+          "id": { "fields": [{ "type": "String", "field": "actor_id", "alias": "actor_id" }] },
+          "attributes": [
+            { "type": "String", "field": "name", "alias": "name" }
+          ]
+        }
+      },
+      {
+        "label": "Producer",
+        "oneToOne": {
+          "tableSource": { "catalog": "movies", "schema": "public", "table": "producers" },
+          "id": { "fields": [{ "type": "String", "field": "producer_id", "alias": "producer_id" }] },
+          "attributes": [
+            { "type": "String", "field": "name", "alias": "name" }
+          ]
+        }
+      }
+    ],
+    "edges": [
+      {
+        "label": "FEATURES",
+        "fromVertex": "Movie",
+        "toVertex": "Actor",
+        "tableSource": { "catalog": "movies", "schema": "public", "table": "acts_in" },
+        "fromId": { "fields": [{ "type": "String", "field": "movie_id", "alias": "movie_id" }] },
+        "toId":   { "fields": [{ "type": "String", "field": "actor_id", "alias": "actor_id" }] }
+      },
+      {
+        "label": "PRODUCED_BY",
+        "fromVertex": "Movie",
+        "toVertex": "Producer",
+        "tableSource": { "catalog": "movies", "schema": "public", "table": "produced_by" },
+        "fromId": { "fields": [{ "type": "String", "field": "movie_id",    "alias": "movie_id" }] },
+        "toId":   { "fields": [{ "type": "String", "field": "producer_id", "alias": "producer_id" }] }
+      }
+    ]
+  }
+}
