@@ -52,14 +52,73 @@ flowchart TD
     Intercept -->|Standard Postgres Results| PG
 ```
 
-**FusionProxy** (`fusion_proxy.py`) is the bridge. It speaks the Postgres wire protocol on port 5435, so PuppyGraph can connect to it like any PostgreSQL database. When a query contains a `vec_search(table, 'query text', k)` macro, the proxy:
+## How the Proxy Works
 
-1. Embeds the query text using the same sentence transformer used for indexing
-2. Runs a nearest-neighbor search in LanceDB
-3. Rewrites the SQL to replace the macro with `movie_id IN ('id1', 'id2', ...)`
-4. Forwards the rewritten query to DuckDB
+This is the part that matters. The proxy is the reason this project exists.
 
-PuppyGraph never knows LanceDB is involved. It just receives rows.
+### The constraint
+
+PuppyGraph connects to data through JDBC. It does not have a plugin API for vector databases. It has no concept of an embedding. If you want PuppyGraph to use LanceDB, you have exactly one option: make LanceDB look like a relational database it already knows how to talk to.
+
+The proxy does that. It pretends to be a PostgreSQL server. PuppyGraph connects to it with the standard `org.postgresql.Driver`, sends standard SQL, and receives standard rows. It has no idea LanceDB is involved.
+
+### The four layers
+
+The proxy is about 200 lines of Python and stacks four things:
+
+1. **Postgres wire protocol** via [buenavista](https://github.com/jwills/buenavista). This handles the TCP socket, the handshake, prepared statements, parameter binding, and the row encoding. PuppyGraph thinks it is talking to Postgres 14.
+2. **DuckDB in-memory engine.** All SQL that arrives at the proxy is executed by DuckDB. DuckDB attaches `movies.db` as a catalog so the graph tables (movies, actors, producers, edges) are queryable.
+3. **The DuckDB Lance extension.** `INSTALL lance; LOAD lance; ATTACH 'lance_movies' AS lance_ns (TYPE LANCE);` mounts the LanceDB directory as a DuckDB catalog. After this point, LanceDB tables are first-class DuckDB tables. The extension provides `lance_vector_search(table, column, query_vector, k)` which runs the actual ANN search in native code.
+4. **A SQL rewriter.** Sits in front of DuckDB. Catches a custom `vec_search()` macro in incoming SQL and rewrites it into a `lance_vector_search()` subquery before DuckDB sees it.
+
+### The critical trick: vec_search()
+
+PuppyGraph's schema lets you define a vertex or edge with a SQL `WHERE` clause. The schema for this project uses:
+
+```sql
+WHERE movie_id IN vec_search(movies, 'query text here', 40)
+```
+
+That `vec_search` is not a real function. DuckDB has never heard of it. It is a marker that the proxy looks for. When the proxy sees it on the wire, before passing the SQL down to DuckDB it does this:
+
+1. Parse the macro: extract table name, query text, and `k`.
+2. Embed the query text in-process using the same `SentenceTransformer` model that was used to build the LanceDB index. Same model, same tokenizer, same dimensionality. If these did not match, similarity scores would be meaningless.
+3. Build a vector literal: `[0.013, -0.041, ...]::FLOAT[]`. About 384 floats for `bge-small`.
+4. Replace the macro with a real DuckDB subquery:
+   ```sql
+   IN (SELECT movie_id FROM lance_vector_search(
+         'lance_ns.main.movies', 'vector', [...]::FLOAT[], k=40))
+   ```
+5. Send the rewritten SQL to DuckDB. DuckDB hits the Lance extension, which does the ANN search in native code against the on-disk index, returns the matching IDs, and DuckDB joins those IDs against the graph tables in the same query.
+
+One round-trip. No application-layer join. The vector search and the relational join happen in the same DuckDB execution plan.
+
+### The JDBC compatibility tax
+
+DuckDB is not Postgres. It is close, but PuppyGraph's JDBC driver sends a handful of probes that DuckDB does not answer the way Postgres does. The proxy intercepts these too:
+
+- `SHOW TRANSACTION ISOLATION LEVEL` returns a synthesized `'read committed'` row.
+- `SET <anything>` is silently no-ope'd. JDBC sets timezone and client encoding on connect, DuckDB ignores both.
+- Some Postgres metadata queries do `INNER JOIN pg_catalog.pg_type` on OIDs that DuckDB does not populate. The proxy rewrites those to `LEFT JOIN` so they do not drop every row.
+- `array_upper(current_schemas(false), 1)` is patched to a literal `1` because DuckDB's array function signatures differ.
+
+None of this is interesting. It is the kind of thing you only discover by running PuppyGraph against the proxy, watching the error log, and patching until everything connects. The reason it is in the codebase is because without it the JDBC handshake fails and you never reach the interesting part.
+
+### Why a proxy instead of two databases
+
+The obvious alternative is to skip the proxy: have the application code talk to LanceDB directly for semantic search, get a list of IDs, then send those IDs to PuppyGraph in a Gremlin `g.V(id1, id2, ...)` call.
+
+That works, but it has a real cost. Every vector search becomes two round-trips and a network hop in between. The list of IDs has to be serialized into a Gremlin query string, which gets big fast at `k=500`. And the graph engine cannot push predicates into the vector search, so you cannot say "find me films like X *that are also produced by Y*" in one query.
+
+With the proxy, that is one SQL statement. PuppyGraph emits it, DuckDB plans it, the Lance extension answers the vector part, DuckDB joins the graph part, and PuppyGraph receives rows. The proxy makes the two systems look like one to the graph engine, and that is the entire point.
+
+### Where to look in the code
+
+- `fusion_proxy.py:17` is the regex that catches the macro
+- `fusion_proxy.py:46` builds the lance_vector_search subquery
+- `fusion_proxy.py:62` is the `execute_sql` interceptor (everything routes through here)
+- `fusion_proxy.py:86` does the macro detection and rewrite
+- `fusion_proxy.py:179` loads the DuckDB Lance extension on startup
 
 ---
 
