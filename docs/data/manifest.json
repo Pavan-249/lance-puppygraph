@@ -1,0 +1,66 @@
+[
+  {
+    "slug": "wolverine-xmen",
+    "query": "wolverine xmen",
+    "matches": 40,
+    "creators": 16,
+    "finds": 4,
+    "top_creator": "Bad Hat Harry Productions"
+  },
+  {
+    "slug": "alien-spaceship",
+    "query": "alien spaceship",
+    "matches": 40,
+    "creators": 15,
+    "finds": 15,
+    "top_creator": "Brandywine Productions"
+  },
+  {
+    "slug": "transformer-robots",
+    "query": "transformer robots",
+    "matches": 40,
+    "creators": 16,
+    "finds": 11,
+    "top_creator": "Mark Ryan"
+  },
+  {
+    "slug": "mind-bending-thriller",
+    "query": "mind bending thriller reality is not what it seems",
+    "matches": 40,
+    "creators": 15,
+    "finds": 20,
+    "top_creator": "L. Scott Caldwell"
+  },
+  {
+    "slug": "boxing-underdog",
+    "query": "boxing rocky underdog",
+    "matches": 40,
+    "creators": 15,
+    "finds": 7,
+    "top_creator": "Jim Lampley"
+  },
+  {
+    "slug": "high-school-comedy",
+    "query": "high school teen comedy",
+    "matches": 40,
+    "creators": 13,
+    "finds": 20,
+    "top_creator": "Keith Loneker"
+  },
+  {
+    "slug": "dark-psychological-crime",
+    "query": "dark psychological obsession crime",
+    "matches": 40,
+    "creators": 12,
+    "finds": 20,
+    "top_creator": "Charles S. Dutton"
+  },
+  {
+    "slug": "stallone-action",
+    "query": "stallone rambo action",
+    "matches": 40,
+    "creators": 14,
+    "finds": 12,
+    "top_creator": "Garrett M. Brown"
+  }
+]
